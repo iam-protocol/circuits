@@ -1,0 +1,60 @@
+pragma circom 2.1.0;
+
+include "../node_modules/circomlib/circuits/comparators.circom";
+include "hamming_distance.circom";
+include "commitment_check.circom";
+
+// IAM Protocol Hamming Distance Proof Circuit
+//
+// Proves three things without revealing the fingerprints:
+// 1. ft_new hashes to commitment_new under salt_new
+// 2. ft_prev hashes to commitment_prev under salt_prev
+// 3. HammingDistance(ft_new, ft_prev) < threshold
+//
+// Public inputs: commitment_new, commitment_prev, threshold
+// Private witnesses: ft_new[256], ft_prev[256], salt_new, salt_prev
+
+template IAMHamming(n_bits) {
+    // Private witnesses
+    signal input ft_new[n_bits];
+    signal input ft_prev[n_bits];
+    signal input salt_new;
+    signal input salt_prev;
+
+    // Public inputs
+    signal input commitment_new;
+    signal input commitment_prev;
+    signal input threshold;
+
+    // 1. Enforce all fingerprint bits are binary
+    for (var i = 0; i < n_bits; i++) {
+        ft_new[i] * (1 - ft_new[i]) === 0;
+        ft_prev[i] * (1 - ft_prev[i]) === 0;
+    }
+
+    // 2. Verify commitment for new fingerprint
+    component check_new = CommitmentCheck(n_bits);
+    check_new.bits <== ft_new;
+    check_new.salt <== salt_new;
+    check_new.commitment <== commitment_new;
+
+    // 3. Verify commitment for previous fingerprint
+    component check_prev = CommitmentCheck(n_bits);
+    check_prev.bits <== ft_prev;
+    check_prev.salt <== salt_prev;
+    check_prev.commitment <== commitment_prev;
+
+    // 4. Compute Hamming distance
+    component hd = HammingDistance(n_bits);
+    hd.a <== ft_new;
+    hd.b <== ft_prev;
+
+    // 5. Assert distance < threshold
+    // LessThan(9) supports values 0..511, enough for max distance 256
+    component lt = LessThan(9);
+    lt.in[0] <== hd.distance;
+    lt.in[1] <== threshold;
+    lt.out === 1;
+}
+
+component main {public [commitment_new, commitment_prev, threshold]} = IAMHamming(256);
