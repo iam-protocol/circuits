@@ -1,0 +1,10 @@
+node_modules/
+build/
+*.ptau
+*.zkey
+*.wtns
+*.r1cs
+*.wasm
+*.sym
+.DS_Store
+target/
