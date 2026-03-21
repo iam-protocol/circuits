@@ -6,12 +6,13 @@ include "commitment_check.circom";
 
 // IAM Protocol Hamming Distance Proof Circuit
 //
-// Proves three things without revealing the fingerprints:
+// Proves four things without revealing the fingerprints:
 // 1. ft_new hashes to commitment_new under salt_new
 // 2. ft_prev hashes to commitment_prev under salt_prev
 // 3. HammingDistance(ft_new, ft_prev) < threshold
+// 4. HammingDistance(ft_new, ft_prev) >= min_distance (prevents perfect replay)
 //
-// Public inputs: commitment_new, commitment_prev, threshold
+// Public inputs: commitment_new, commitment_prev, threshold, min_distance
 // Private witnesses: ft_new[256], ft_prev[256], salt_new, salt_prev
 
 template IAMHamming(n_bits) {
@@ -25,6 +26,7 @@ template IAMHamming(n_bits) {
     signal input commitment_new;
     signal input commitment_prev;
     signal input threshold;
+    signal input min_distance;
 
     // 1. Enforce all fingerprint bits are binary
     for (var i = 0; i < n_bits; i++) {
@@ -49,12 +51,19 @@ template IAMHamming(n_bits) {
     hd.a <== ft_new;
     hd.b <== ft_prev;
 
-    // 5. Assert distance < threshold
+    // 5. Assert distance < threshold (maximum allowed drift)
     // LessThan(9) supports values 0..511, enough for max distance 256
     component lt = LessThan(9);
     lt.in[0] <== hd.distance;
     lt.in[1] <== threshold;
     lt.out === 1;
+
+    // 6. Assert distance >= min_distance (prevents perfect replay / synthetic consistency)
+    // GreaterEqThan(9) checks that distance is at least min_distance
+    component gte = GreaterEqThan(9);
+    gte.in[0] <== hd.distance;
+    gte.in[1] <== min_distance;
+    gte.out === 1;
 }
 
-component main {public [commitment_new, commitment_prev, threshold]} = IAMHamming(256);
+component main {public [commitment_new, commitment_prev, threshold, min_distance]} = IAMHamming(256);
