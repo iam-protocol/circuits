@@ -90,12 +90,14 @@ export interface TestInput {
   commitment_new: string;
   commitment_prev: string;
   threshold: string;
+  min_distance: string;
 }
 
-// Generate a valid test case (Hamming distance = flippedBits < threshold)
+// Generate a valid test case (min_distance <= Hamming distance < threshold)
 export async function generateValidInput(
   flippedBits: number = 10,
-  threshold: number = 30
+  threshold: number = 30,
+  minDistance: number = 3
 ): Promise<TestInput> {
   const ft_prev = randomFingerprint();
   const ft_new = flipBits(ft_prev, flippedBits);
@@ -113,15 +115,17 @@ export async function generateValidInput(
     commitment_new: commitment_new.toString(),
     commitment_prev: commitment_prev.toString(),
     threshold: threshold.toString(),
+    min_distance: minDistance.toString(),
   };
 }
 
 // Generate an invalid test case (Hamming distance >= threshold)
 export async function generateInvalidInput(
   flippedBits: number = 200,
-  threshold: number = 30
+  threshold: number = 30,
+  minDistance: number = 3
 ): Promise<TestInput> {
-  return generateValidInput(flippedBits, threshold);
+  return generateValidInput(flippedBits, threshold, minDistance);
 }
 
 // Generate proof from input
