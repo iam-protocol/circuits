@@ -106,6 +106,34 @@ describe("IAM Hamming Distance Circuit", function () {
     expect(valid).to.be.true;
   });
 
+  it("accepts distance=1 with min_distance=0", async () => {
+    const input = await generateValidInput(1, 30, 0, "min0");
+    const { proof, publicSignals } = await generateProof(input);
+    const vk = await import("../" + "keys/verification_key.json");
+    const valid = await snarkjs.groth16.verify(vk, publicSignals, proof);
+    expect(valid).to.be.true;
+  });
+
+  it("rejects distance=5 when min_distance > threshold (impossible range)", async () => {
+    // min_distance=10, threshold=5: no valid distance exists (need >= 10 AND < 5)
+    const input = await generateValidInput(5, 5, 10, "impossible");
+    try {
+      await generateProof(input);
+      expect.fail("Should have thrown — impossible constraint range");
+    } catch (err: any) {
+      expect(err.message).to.include("Assert Failed");
+    }
+  });
+
+  it("accepts minimum viable distance with tight threshold", async () => {
+    // distance=3, threshold=4, min_distance=3: exactly at lower bound, under upper
+    const input = await generateValidInput(3, 4, 3, "tight");
+    const { proof, publicSignals } = await generateProof(input);
+    const vk = await import("../" + "keys/verification_key.json");
+    const valid = await snarkjs.groth16.verify(vk, publicSignals, proof);
+    expect(valid).to.be.true;
+  });
+
   it("serializes proof in groth16-solana format", async () => {
     const input = await generateValidInput(10, 30, 3);
     const { proof, publicSignals } = await generateProof(input);

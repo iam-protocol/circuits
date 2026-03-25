@@ -30,6 +30,16 @@ circom circom/iam_hamming.circom \
 echo "Constraint info:"
 npx snarkjs r1cs info build/iam_hamming.r1cs
 
+# 3b. Verify constraint count fits within ptau level (2^12 = 4096 for pot12)
+PTAU_MAX=4096
+CONSTRAINT_COUNT=$(npx snarkjs r1cs info build/iam_hamming.r1cs 2>&1 | grep -i "constraints" | grep -oE '[0-9]+' | head -1)
+if [ -n "$CONSTRAINT_COUNT" ] && [ "$CONSTRAINT_COUNT" -gt "$PTAU_MAX" ]; then
+  echo "Error: circuit has $CONSTRAINT_COUNT constraints but ptau supports max $PTAU_MAX (2^12)."
+  echo "Use a larger ptau file (e.g., pot14_final.ptau for 2^14 = 16384)."
+  exit 1
+fi
+echo "Constraint check: $CONSTRAINT_COUNT <= $PTAU_MAX (ptau level 12) ✓"
+
 # 4. Phase 2 setup
 echo "Running Groth16 Phase 2 setup..."
 npx snarkjs groth16 setup build/iam_hamming.r1cs build/pot12_final.ptau build/iam_hamming_0000.zkey
