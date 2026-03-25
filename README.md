@@ -9,10 +9,30 @@ ZK circuit definitions for the IAM Protocol. Proves that the Hamming distance be
 Proves three things:
 1. `Poseidon(pack(ft_new), salt_new) == commitment_new`
 2. `Poseidon(pack(ft_prev), salt_prev) == commitment_prev`
-3. `HammingDistance(ft_new, ft_prev) < threshold`
+3. `min_distance <= HammingDistance(ft_new, ft_prev) < threshold`
 
-Public inputs: `commitment_new`, `commitment_prev`, `threshold`
+Public inputs: `commitment_new`, `commitment_prev`, `threshold`, `min_distance`
 Private witnesses: `ft_new[256]`, `ft_prev[256]`, `salt_new`, `salt_prev`
+
+## Trusted Setup
+
+Groth16 requires a structured reference string (SRS) produced by a trusted setup ceremony. The current setup uses:
+
+- **Phase 1 (Powers of Tau):** Hermez community ceremony (`powersOfTau28_hez_final_12.ptau`) — multi-contributor, production-grade. This phase is circuit-agnostic and reusable.
+- **Phase 2 (Circuit-specific):** Single contributor with entropy from `openssl rand` + timestamp. This is the phase that requires multiple independent contributors for production security.
+
+**Current status: development setup.** The Phase 2 ceremony has a single contributor. The toxic waste (secret randomness used to derive the proving/verification keys) is known to whoever ran `scripts/setup.sh`. If retained, it could be used to forge proofs that pass on-chain verification.
+
+**What this means in practice:**
+- On devnet, this is standard and acceptable. All Groth16 projects use single-contributor setups during development.
+- For mainnet, a multi-party computation (MPC) ceremony is required where multiple independent contributors each add entropy. The toxic waste is only compromised if ALL contributors collude. The ceremony will follow the Hermez/snarkjs Phase 2 protocol with public verification of each contribution.
+
+**Mainnet ceremony plan:**
+1. Publish the circuit and R1CS constraint system
+2. Coordinate 10+ independent contributors (team, community, partner protocols)
+3. Each contributor runs `snarkjs zkey contribute` with their own entropy
+4. Final verification key published with full transcript of contributions
+5. Re-deploy `iam-verifier` with the ceremony-derived verification key
 
 ## Setup
 
