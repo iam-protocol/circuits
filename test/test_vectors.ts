@@ -76,6 +76,7 @@ function randomFingerprint(seed = "default"): number[] {
 
 // Flip exactly `count` bits in a fingerprint copy (deterministic from seed)
 function flipBits(bits: number[], count: number, seed = "flip"): number[] {
+  if (count > bits.length) throw new Error(`Cannot flip ${count} bits in ${bits.length}-bit fingerprint`);
   const rng = seededRng(`flip-${seed}-${count}`);
   const result = [...bits];
   const indices = new Set<number>();
