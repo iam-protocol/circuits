@@ -1,8 +1,23 @@
 import * as snarkjs from "snarkjs";
+import { createHash } from "crypto";
 
 const WASM_PATH = "build/iam_hamming_js/iam_hamming.wasm";
 const ZKEY_PATH = "build/iam_hamming_final.zkey";
 const VK_PATH = "keys/verification_key.json";
+
+// Deterministic PRNG for reproducible test vectors.
+// Mulberry32 seeded from a hash of a label string.
+function seededRng(label: string): () => number {
+  const hash = createHash("sha256").update(label).digest();
+  let state = hash.readUInt32BE(0);
+  return () => {
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 // BN254 scalar field prime
 const F_p = BigInt(
@@ -49,21 +64,24 @@ async function computeCommitment(
   return poseidon.F.toObject(hash);
 }
 
-// Generate a random 256-bit fingerprint
-function randomFingerprint(): number[] {
+// Deterministic 256-bit fingerprint from a seed label
+function randomFingerprint(seed = "default"): number[] {
+  const rng = seededRng(`fingerprint-${seed}`);
   const bits: number[] = [];
   for (let i = 0; i < 256; i++) {
-    bits.push(Math.random() > 0.5 ? 1 : 0);
+    bits.push(rng() > 0.5 ? 1 : 0);
   }
   return bits;
 }
 
-// Flip exactly `count` random bits in a fingerprint copy
-function flipBits(bits: number[], count: number): number[] {
+// Flip exactly `count` bits in a fingerprint copy (deterministic from seed)
+function flipBits(bits: number[], count: number, seed = "flip"): number[] {
+  if (count > bits.length) throw new Error(`Cannot flip ${count} bits in ${bits.length}-bit fingerprint`);
+  const rng = seededRng(`flip-${seed}-${count}`);
   const result = [...bits];
   const indices = new Set<number>();
   while (indices.size < count) {
-    indices.add(Math.floor(Math.random() * 256));
+    indices.add(Math.floor(rng() * 256));
   }
   for (const i of indices) {
     result[i] = result[i] === 0 ? 1 : 0;
@@ -71,13 +89,12 @@ function flipBits(bits: number[], count: number): number[] {
   return result;
 }
 
-// Random salt (field element)
-function randomSalt(): bigint {
-  const bytes = new Uint8Array(31); // 31 bytes to stay within BN254 field
-  crypto.getRandomValues(bytes);
+// Deterministic salt (field element) from seed label
+function randomSalt(seed = "salt"): bigint {
+  const hash = createHash("sha256").update(`salt-${seed}`).digest();
   let val = BigInt(0);
-  for (let i = 0; i < bytes.length; i++) {
-    val = (val << BigInt(8)) + BigInt(bytes[i]);
+  for (let i = 0; i < 31; i++) {
+    val = (val << BigInt(8)) + BigInt(hash[i]!);
   }
   return val % F_p;
 }
@@ -97,12 +114,13 @@ export interface TestInput {
 export async function generateValidInput(
   flippedBits: number = 10,
   threshold: number = 30,
-  minDistance: number = 3
+  minDistance: number = 3,
+  seed: string = "default"
 ): Promise<TestInput> {
-  const ft_prev = randomFingerprint();
-  const ft_new = flipBits(ft_prev, flippedBits);
-  const salt_new = randomSalt();
-  const salt_prev = randomSalt();
+  const ft_prev = randomFingerprint(`${seed}-prev`);
+  const ft_new = flipBits(ft_prev, flippedBits, seed);
+  const salt_new = randomSalt(`${seed}-new`);
+  const salt_prev = randomSalt(`${seed}-prev`);
 
   const commitment_new = await computeCommitment(ft_new, salt_new);
   const commitment_prev = await computeCommitment(ft_prev, salt_prev);
@@ -123,9 +141,10 @@ export async function generateValidInput(
 export async function generateInvalidInput(
   flippedBits: number = 200,
   threshold: number = 30,
-  minDistance: number = 3
+  minDistance: number = 3,
+  seed: string = "invalid"
 ): Promise<TestInput> {
-  return generateValidInput(flippedBits, threshold, minDistance);
+  return generateValidInput(flippedBits, threshold, minDistance, seed);
 }
 
 // Generate proof from input
@@ -136,15 +155,6 @@ export async function generateProof(input: TestInput) {
     ZKEY_PATH
   );
   return { proof, publicSignals };
-}
-
-// Verify proof locally
-export async function verifyProof(
-  proof: any,
-  publicSignals: string[]
-): Promise<boolean> {
-  const vk = await import("../" + VK_PATH);
-  return snarkjs.groth16.verify(vk, publicSignals, proof);
 }
 
 // Serialize proof for on-chain submission (groth16-solana format)
