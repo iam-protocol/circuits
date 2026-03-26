@@ -9,6 +9,10 @@
     "verify": "./scripts/verify.sh",
     "export-vk": "node scripts/parse_vk_to_rust.js keys/verification_key.json keys/"
   },
+  "overrides": {
+    "serialize-javascript": ">=7.0.3",
+    "diff": ">=7.0.0"
+  },
   "dependencies": {
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
