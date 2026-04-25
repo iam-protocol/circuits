@@ -10,7 +10,7 @@ import {
   VK_PATH,
 } from "./test_vectors";
 
-describe("IAM Hamming Distance Circuit", function () {
+describe("Entros Hamming Distance Circuit", function () {
   this.timeout(120000); // ZK proof generation can take time
 
   let vk: any;
