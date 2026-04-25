@@ -1,8 +1,8 @@
 import * as snarkjs from "snarkjs";
 import { createHash } from "crypto";
 
-const WASM_PATH = "build/iam_hamming_js/iam_hamming.wasm";
-const ZKEY_PATH = "build/iam_hamming_final.zkey";
+const WASM_PATH = "build/entros_hamming_js/entros_hamming.wasm";
+const ZKEY_PATH = "build/entros_hamming_final.zkey";
 const VK_PATH = "keys/verification_key.json";
 
 // Deterministic PRNG for reproducible test vectors.

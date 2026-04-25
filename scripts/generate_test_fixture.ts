@@ -29,7 +29,7 @@ async function main() {
   const publicInputs = publicSignals.map((s: string) => toBigEndian32(s));
 
   const fixture = {
-    description: "Valid Groth16 proof for IAM Hamming circuit (distance=10, threshold=30)",
+    description: "Valid Groth16 proof for Entros Hamming circuit (distance=10, threshold=30)",
     proof_bytes: proofBytes,
     public_inputs: publicInputs,
     public_signals_decimal: publicSignals,

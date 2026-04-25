@@ -1,10 +1,10 @@
 # circuits
 
-ZK circuit definitions for the IAM Protocol. Proves that the Hamming distance between two Poseidon-committed Temporal Fingerprints is below a threshold, without revealing either fingerprint.
+ZK circuit definitions for the Entros Protocol. Proves that the Hamming distance between two Poseidon-committed Temporal Fingerprints is below a threshold, without revealing either fingerprint.
 
 ## Circuit
 
-**`iam_hamming.circom`** — Main Groth16 circuit (BN254). ~1,996 constraints.
+**`entros_hamming.circom`** — Main Groth16 circuit (BN254). ~1,996 constraints.
 
 Proves three things:
 1. `Poseidon(pack(ft_new), salt_new) == commitment_new`
@@ -32,7 +32,7 @@ Groth16 requires a structured reference string (SRS) produced by a trusted setup
 2. Coordinate 10+ independent contributors (team, community, partner protocols)
 3. Each contributor runs `snarkjs zkey contribute` with their own entropy
 4. Final verification key published with full transcript of contributions
-5. Re-deploy `iam-verifier` with the ceremony-derived verification key
+5. Re-deploy `entros-verifier` with the ceremony-derived verification key
 
 ## Setup
 
@@ -48,13 +48,13 @@ npm test              # Run circuit tests (7 tests)
 
 ```bash
 # Generate a test proof (requires setup.sh to have been run)
-npx snarkjs groth16 fullprove <input.json> build/iam_hamming_js/iam_hamming.wasm build/iam_hamming_final.zkey proof.json public.json
+npx snarkjs groth16 fullprove <input.json> build/entros_hamming_js/entros_hamming.wasm build/entros_hamming_final.zkey proof.json public.json
 ```
 
 ## Verification Key
 
 `keys/verification_key.json` — snarkjs format, committed to the repo.
-`keys/verifying_key.rs` — Rust format for `groth16-solana`, used by `protocol-core/iam-verifier`.
+`keys/verifying_key.rs` — Rust format for `groth16-solana`, used by `protocol-core/entros-verifier`.
 
 ## License
 
