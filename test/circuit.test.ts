@@ -109,7 +109,6 @@ describe("Entros Hamming Distance Circuit", function () {
   it("accepts distance=1 with min_distance=0", async () => {
     const input = await generateValidInput(1, 30, 0, "min0");
     const { proof, publicSignals } = await generateProof(input);
-    const vk = await import("../" + "keys/verification_key.json");
     const valid = await snarkjs.groth16.verify(vk, publicSignals, proof);
     expect(valid).to.be.true;
   });
@@ -129,7 +128,6 @@ describe("Entros Hamming Distance Circuit", function () {
     // distance=3, threshold=4, min_distance=3: exactly at lower bound, under upper
     const input = await generateValidInput(3, 4, 3, "tight");
     const { proof, publicSignals } = await generateProof(input);
-    const vk = await import("../" + "keys/verification_key.json");
     const valid = await snarkjs.groth16.verify(vk, publicSignals, proof);
     expect(valid).to.be.true;
   });
